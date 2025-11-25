@@ -137,12 +137,24 @@ BASE_VAULT_ADDRESS=0x... # Deployed Vault address on Base
 ARBITRUM_VAULT_ADDRESS=0x... # Deployed Vault address on Arbitrum
 ```
 
+**backend/indexer/.env**:
+```env
+DATABASE_URL="postgresql://oceanlink:oceanlink@localhost:5432/oceanlink?schema=public"
+INDEXER_POLL_INTERVAL_MS=5000
+BASE_RPC_URL=http://localhost:8545
+SEPOLIA_RPC_URL=http://localhost:8546
+BASE_VAULT_ADDRESS=0x... # Deployed Vault address on Base
+SEPOLIA_VAULT_ADDRESS=0x... # Deployed Vault address on Sepolia
+```
+
 For testnet deployment, use:
 ```env
 BASE_RPC_URL=https://base-sepolia.g.alchemy.com/v2/iJNCam89D3waZumSzuSgR
 SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/iJNCam89D3waZumSzuSgR
 BASE_VAULT_ADDRESS=0xAa7A0f08cF8E7456DEb46A09a9C77b531C278f3c
 SEPOLIA_VAULT_ADDRESS=0x3A0568585d83cb3c5349B9aB0F957Ec054177dB0
+BASE_TOKEN_ADDRESS=0xCdBb9C109Da8FF1423C753A9D4cEb85d680DC0fa
+SEPOLIA_TOKEN_ADDRESS=0xDB6676239269Ae5b8665d9eF9656D6b272A8C7A8
 ```
 
 ### 6. Start Services
@@ -159,11 +171,41 @@ pnpm dev:solver
 # Terminal 3: Executor
 pnpm dev:executor
 
-# Terminal 4: Frontend
+# Terminal 4: Indexer (optional - indexes deposit/withdraw events)
+cd backend/indexer
+pnpm dev
+
+# Terminal 5: Frontend
 pnpm dev:frontend
 ```
 
-### 7. Use the Frontend
+### 7. Deposit and Withdraw Scripts
+
+Use the TypeScript scripts to interact with the Vault contract:
+
+**Deposit tokens:**
+```bash
+cd backend/scripts
+tsx deposit.ts <chainId> <amount> <privateKey>
+# Example: tsx deposit.ts 84532 100.0 0xYourPrivateKey
+```
+
+**Withdraw tokens:**
+```bash
+cd backend/scripts
+tsx withdraw.ts <chainId> <amount> <privateKey>
+# Example: tsx withdraw.ts 84532 50.0 0xYourPrivateKey
+```
+
+Supported chains:
+- `84532` - Base Sepolia
+- `11155111` - Sepolia
+- `31337` - Localhost Base
+- `31338` - Localhost Sepolia
+
+See `backend/scripts/README.md` for more details.
+
+### 8. Use the Frontend
 
 1. Open http://localhost:3000
 2. Connect your wallet
@@ -185,7 +227,9 @@ ocean-link/
 ├── backend/
 │   ├── orderbook/      # HTTP API for intents
 │   ├── solver/         # Netting solver worker
-│   └── executor/       # Execution worker
+│   ├── executor/       # Execution worker
+│   ├── indexer/         # Vault event indexer
+│   └── scripts/        # Deposit/withdraw scripts
 ├── frontend/           # Next.js dApp
 ├── docker/             # Docker Compose setup
 └── README.md
@@ -246,6 +290,14 @@ curl http://localhost:3001/intents?user_address=0x...
 - `BASE_VAULT_ADDRESS`: Vault contract address on Base
 - `SEPOLIA_VAULT_ADDRESS`: Vault contract address on Sepolia
 - `ARBITRUM_VAULT_ADDRESS`: Vault contract address on Arbitrum
+
+### Indexer
+- `DATABASE_URL`: PostgreSQL connection string
+- `INDEXER_POLL_INTERVAL_MS`: Polling interval in milliseconds (default: 5000)
+- `BASE_RPC_URL`: RPC URL for Base chain
+- `SEPOLIA_RPC_URL`: RPC URL for Sepolia chain
+- `BASE_VAULT_ADDRESS`: Vault contract address on Base
+- `SEPOLIA_VAULT_ADDRESS`: Vault contract address on Sepolia
 
 ### Frontend
 - `NEXT_PUBLIC_ORDERBOOK_API_URL`: Orderbook API URL (default: http://localhost:3001)

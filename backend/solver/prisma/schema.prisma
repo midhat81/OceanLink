@@ -41,3 +41,21 @@ model ExecutionPlan {
   @@index([status])
 }
 
+model VaultTransaction {
+  id            String   @id @default(uuid())
+  chainId       BigInt   @db.BigInt
+  vaultAddress  String   @db.Text
+  userAddress   String   @db.Text
+  type          String   // DEPOSIT or WITHDRAW
+  amount        String   @db.Text // Store as string to preserve precision
+  txHash        String   @db.Text
+  blockNumber   BigInt   @db.BigInt
+  blockTimestamp BigInt @db.BigInt
+  createdAt     DateTime @default(now())
+
+  @@index([chainId, vaultAddress])
+  @@index([userAddress])
+  @@index([txHash])
+  @@index([blockNumber])
+}
+

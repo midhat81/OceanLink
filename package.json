@@ -8,6 +8,7 @@
     "dev:orderbook": "cd backend/orderbook && pnpm dev",
     "dev:solver": "cd backend/solver && pnpm dev",
     "dev:executor": "cd backend/executor && pnpm dev",
+    "dev:indexer": "cd backend/indexer && pnpm dev",
     "dev:frontend": "cd frontend && pnpm dev",
     "build:contracts": "cd contracts && forge build",
     "build:backend": "pnpm --filter './backend/*' build",
