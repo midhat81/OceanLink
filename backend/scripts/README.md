@@ -21,6 +21,11 @@ BASE_VAULT_ADDRESS=0xAa7A0f08cF8E7456DEb46A09a9C77b531C278f3c
 SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/iJNCam89D3waZumSzuSgR
 SEPOLIA_TOKEN_ADDRESS=0xDB6676239269Ae5b8665d9eF9656D6b272A8C7A8
 SEPOLIA_VAULT_ADDRESS=0x3A0568585d83cb3c5349B9aB0F957Ec054177dB0
+
+# Arbitrum Sepolia
+ARBITRUM_RPC_URL=https://sepolia-rollup.arbitrum.io/rpc
+ARBITRUM_TOKEN_ADDRESS=0x... # Set your Arbitrum token address
+ARBITRUM_VAULT_ADDRESS=0x... # Set your Arbitrum Vault address
 ```
 
 ## Usage
@@ -45,8 +50,10 @@ tsx deposit.ts 11155111 50.0 0xYourPrivateKey
 **Supported chains:**
 - `84532` - Base Sepolia
 - `11155111` - Sepolia
+- `421614` - Arbitrum Sepolia
 - `31337` - Localhost Base
 - `31338` - Localhost Sepolia
+- `31339` - Localhost Arbitrum
 
 ### Withdraw
 

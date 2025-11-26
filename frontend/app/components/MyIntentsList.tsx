@@ -7,9 +7,11 @@ const ORDERBOOK_API_URL = process.env.NEXT_PUBLIC_ORDERBOOK_API_URL || 'http://l
 
 const CHAIN_NAMES: Record<string, string> = {
   '84532': 'Base Sepolia',
+  '11155111': 'Sepolia',
   '421614': 'Arbitrum Sepolia',
   '31337': 'Localhost (Base)',
-  '31338': 'Localhost (Arbitrum)',
+  '31338': 'Localhost (Sepolia)',
+  '31339': 'Localhost (Arbitrum)',
 }
 
 type Intent = {

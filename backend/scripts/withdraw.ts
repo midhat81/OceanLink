@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
-import { createWalletClient, http, Address, parseUnits, formatUnits } from "viem";
+import { createWalletClient, createPublicClient, http, Address, parseUnits, formatUnits, defineChain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { baseSepolia, sepolia, defineChain } from "viem/chains";
+import { baseSepolia, sepolia, arbitrumSepolia } from "viem/chains";
 
 dotenv.config();
 
@@ -16,6 +16,12 @@ const localhostSepolia = defineChain({
   ...sepolia,
   id: 31338,
   name: "Localhost Sepolia",
+});
+
+const localhostArbitrum = defineChain({
+  ...arbitrumSepolia,
+  id: 31339,
+  name: "Localhost Arbitrum",
 });
 
 // Vault ABI
@@ -52,6 +58,13 @@ function getChainConfig(chainId: number) {
         vaultAddress: process.env.SEPOLIA_VAULT_ADDRESS || "",
         name: "Sepolia",
       };
+    case 421614: // Arbitrum Sepolia
+      return {
+        chain: arbitrumSepolia,
+        rpcUrl: process.env.ARBITRUM_RPC_URL || "",
+        vaultAddress: process.env.ARBITRUM_VAULT_ADDRESS || "",
+        name: "Arbitrum Sepolia",
+      };
     case 31337: // Localhost Base
       return {
         chain: localhostBase,
@@ -66,6 +79,13 @@ function getChainConfig(chainId: number) {
         vaultAddress: process.env.SEPOLIA_VAULT_ADDRESS || "",
         name: "Localhost Sepolia",
       };
+    case 31339: // Localhost Arbitrum
+      return {
+        chain: localhostArbitrum,
+        rpcUrl: process.env.ARBITRUM_RPC_URL || "http://localhost:8547",
+        vaultAddress: process.env.ARBITRUM_VAULT_ADDRESS || "",
+        name: "Localhost Arbitrum",
+      };
     default:
       throw new Error(`Unsupported chain ID: ${chainId}`);
   }
@@ -75,8 +95,12 @@ async function withdraw(chainId: number, amount: string, privateKey: string) {
   const config = getChainConfig(chainId);
 
   if (!config.rpcUrl || !config.vaultAddress) {
+    let prefix = "BASE";
+    if (chainId === 11155111 || chainId === 31338) prefix = "SEPOLIA";
+    else if (chainId === 421614 || chainId === 31339) prefix = "ARBITRUM";
+    
     throw new Error(
-      `Missing configuration for ${config.name}. Please set ${chainId === 84532 || chainId === 31337 ? "BASE" : "SEPOLIA"}_RPC_URL and ${chainId === 84532 || chainId === 31337 ? "BASE" : "SEPOLIA"}_VAULT_ADDRESS`
+      `Missing configuration for ${config.name}. Please set ${prefix}_RPC_URL and ${prefix}_VAULT_ADDRESS`
     );
   }
 
@@ -87,7 +111,10 @@ async function withdraw(chainId: number, amount: string, privateKey: string) {
     transport: http(config.rpcUrl),
   });
 
-  const publicClient = walletClient.extend({ transport: http(config.rpcUrl) });
+  const publicClient = createPublicClient({
+    chain: config.chain,
+    transport: http(config.rpcUrl),
+  });
 
   // Parse amount (USDT has 6 decimals)
   const amountWei = parseUnits(amount, 6);
@@ -149,8 +176,10 @@ if (args.length < 3) {
   console.error("\nSupported chains:");
   console.error("  84532 - Base Sepolia");
   console.error("  11155111 - Sepolia");
+  console.error("  421614 - Arbitrum Sepolia");
   console.error("  31337 - Localhost Base");
   console.error("  31338 - Localhost Sepolia");
+  console.error("  31339 - Localhost Arbitrum");
   process.exit(1);
 }
 

@@ -4,7 +4,7 @@ OceanLink is an MVP for a cross-chain stablecoin netting protocol that allows us
 
 ## Architecture
 
-- **Contracts**: Vault.sol deployed on each chain (Base, Arbitrum) managing internal balances
+- **Contracts**: Vault.sol deployed on each chain (Base Sepolia, Sepolia, Arbitrum Sepolia) managing internal balances
 - **Orderbook API**: Receives and stores user intents with EIP-712 signatures
 - **Solver**: Background worker that finds netting opportunities between opposite flows
 - **Executor**: Background worker that executes transfers on Vault contracts
@@ -16,7 +16,7 @@ OceanLink is an MVP for a cross-chain stablecoin netting protocol that allows us
 - pnpm 8+
 - Foundry (for contracts)
 - PostgreSQL 15+ (or use Docker Compose)
-- Two local anvil instances OR testnet RPCs (Base Sepolia, Arbitrum Sepolia)
+- Two local anvil instances OR testnet RPCs (Base Sepolia, Sepolia, Arbitrum Sepolia)
 
 ## Quick Start
 
@@ -143,18 +143,23 @@ DATABASE_URL="postgresql://oceanlink:oceanlink@localhost:5432/oceanlink?schema=p
 INDEXER_POLL_INTERVAL_MS=5000
 BASE_RPC_URL=http://localhost:8545
 SEPOLIA_RPC_URL=http://localhost:8546
+ARBITRUM_RPC_URL=http://localhost:8547
 BASE_VAULT_ADDRESS=0x... # Deployed Vault address on Base
 SEPOLIA_VAULT_ADDRESS=0x... # Deployed Vault address on Sepolia
+ARBITRUM_VAULT_ADDRESS=0x... # Deployed Vault address on Arbitrum
 ```
 
 For testnet deployment, use:
 ```env
 BASE_RPC_URL=https://base-sepolia.g.alchemy.com/v2/iJNCam89D3waZumSzuSgR
 SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/iJNCam89D3waZumSzuSgR
+ARBITRUM_RPC_URL=https://sepolia-rollup.arbitrum.io/rpc
 BASE_VAULT_ADDRESS=0xAa7A0f08cF8E7456DEb46A09a9C77b531C278f3c
 SEPOLIA_VAULT_ADDRESS=0x3A0568585d83cb3c5349B9aB0F957Ec054177dB0
+ARBITRUM_VAULT_ADDRESS=0x... # Set your Arbitrum Vault address
 BASE_TOKEN_ADDRESS=0xCdBb9C109Da8FF1423C753A9D4cEb85d680DC0fa
 SEPOLIA_TOKEN_ADDRESS=0xDB6676239269Ae5b8665d9eF9656D6b272A8C7A8
+ARBITRUM_TOKEN_ADDRESS=0x... # Set your Arbitrum token address
 ```
 
 ### 6. Start Services
@@ -200,8 +205,10 @@ tsx withdraw.ts <chainId> <amount> <privateKey>
 Supported chains:
 - `84532` - Base Sepolia
 - `11155111` - Sepolia
+- `421614` - Arbitrum Sepolia
 - `31337` - Localhost Base
 - `31338` - Localhost Sepolia
+- `31339` - Localhost Arbitrum
 
 See `backend/scripts/README.md` for more details.
 
@@ -296,8 +303,10 @@ curl http://localhost:3001/intents?user_address=0x...
 - `INDEXER_POLL_INTERVAL_MS`: Polling interval in milliseconds (default: 5000)
 - `BASE_RPC_URL`: RPC URL for Base chain
 - `SEPOLIA_RPC_URL`: RPC URL for Sepolia chain
+- `ARBITRUM_RPC_URL`: RPC URL for Arbitrum chain
 - `BASE_VAULT_ADDRESS`: Vault contract address on Base
 - `SEPOLIA_VAULT_ADDRESS`: Vault contract address on Sepolia
+- `ARBITRUM_VAULT_ADDRESS`: Vault contract address on Arbitrum
 
 ### Frontend
 - `NEXT_PUBLIC_ORDERBOOK_API_URL`: Orderbook API URL (default: http://localhost:3001)

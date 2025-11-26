@@ -9,10 +9,22 @@ const ORDERBOOK_API_URL = process.env.NEXT_PUBLIC_ORDERBOOK_API_URL || 'http://l
 
 const CHAINS = [
   { id: 84532, name: 'Base Sepolia' },
+  { id: 11155111, name: 'Sepolia' },
   { id: 421614, name: 'Arbitrum Sepolia' },
   { id: 31337, name: 'Localhost (Base)' },
-  { id: 31338, name: 'Localhost (Arbitrum)' },
+  { id: 31338, name: 'Localhost (Sepolia)' },
+  { id: 31339, name: 'Localhost (Arbitrum)' },
 ]
+
+// Token addresses per chain (should match deployed contracts)
+const TOKEN_ADDRESSES: Record<string, string> = {
+  '84532': process.env.NEXT_PUBLIC_BASE_TOKEN_ADDRESS || '0xCdBb9C109Da8FF1423C753A9D4cEb85d680DC0fa', // Base Sepolia
+  '11155111': process.env.NEXT_PUBLIC_SEPOLIA_TOKEN_ADDRESS || '0xDB6676239269Ae5b8665d9eF9656D6b272A8C7A8', // Sepolia
+  '421614': process.env.NEXT_PUBLIC_ARBITRUM_TOKEN_ADDRESS || '0x0000000000000000000000000000000000000000', // Arbitrum Sepolia (needs to be set)
+  '31337': process.env.NEXT_PUBLIC_BASE_TOKEN_ADDRESS || '0x0000000000000000000000000000000000000000', // Localhost Base
+  '31338': process.env.NEXT_PUBLIC_SEPOLIA_TOKEN_ADDRESS || '0x0000000000000000000000000000000000000000', // Localhost Sepolia
+  '31339': process.env.NEXT_PUBLIC_ARBITRUM_TOKEN_ADDRESS || '0x0000000000000000000000000000000000000000', // Localhost Arbitrum
+}
 
 export function CreateIntentForm() {
   const { address } = useAccount()
@@ -45,11 +57,16 @@ export function CreateIntentForm() {
       const expiry = BigInt(Math.floor(Date.now() / 1000) + 3600) // 1 hour from now
       const nonce = BigInt(Date.now()) // Simple nonce using timestamp
 
+      const tokenAddress = TOKEN_ADDRESSES[srcChainId]
+      if (!tokenAddress || tokenAddress === '0x0000000000000000000000000000000000000000') {
+        throw new Error(`Token address not configured for chain ${srcChainId}`)
+      }
+
       const intent: Intent = {
         user: address,
         srcChainId: BigInt(srcChainId),
         dstChainId: BigInt(dstChainId),
-        token: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', // USDC on Base Sepolia (update for other chains)
+        token: tokenAddress as `0x${string}`,
         amount: amountBigInt,
         minAmountOut: minAmountOutBigInt,
         expiry,

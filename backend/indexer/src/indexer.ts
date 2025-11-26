@@ -1,5 +1,5 @@
-import { createPublicClient, http, Address, parseAbiItem, formatUnits } from "viem";
-import { baseSepolia, sepolia, defineChain } from "viem/chains";
+import { createPublicClient, http, Address, parseAbiItem, formatUnits, defineChain } from "viem";
+import { baseSepolia, sepolia, arbitrumSepolia } from "viem/chains";
 import { prisma } from "./db.js";
 import { ChainConfig } from "./types.js";
 
@@ -16,6 +16,12 @@ const localhostSepolia = defineChain({
   name: "Localhost Sepolia",
 });
 
+const localhostArbitrum = defineChain({
+  ...arbitrumSepolia,
+  id: 31339,
+  name: "Localhost Arbitrum",
+});
+
 // Vault ABI for events
 const VAULT_ABI = [
   parseAbiItem("event Deposit(address indexed user, uint256 amount)"),
@@ -26,44 +32,70 @@ const VAULT_ABI = [
 function parseChainConfigs(): ChainConfig[] {
   const configs: ChainConfig[] = [];
 
-  // Base Sepolia
-  if (process.env.BASE_RPC_URL && process.env.BASE_VAULT_ADDRESS) {
-    configs.push({
-      chainId: 84532,
-      rpcUrl: process.env.BASE_RPC_URL,
-      vaultAddress: process.env.BASE_VAULT_ADDRESS,
-      name: "Base Sepolia",
-    });
+  // Base Sepolia (84532)
+  const baseRpcUrl = process.env.BASE_RPC_URL;
+  const baseVaultAddress = process.env.BASE_VAULT_ADDRESS;
+  if (baseRpcUrl && baseVaultAddress) {
+    const isLocalhost = baseRpcUrl.startsWith("http://localhost:") || baseRpcUrl.startsWith("http://127.0.0.1:");
+    if (!isLocalhost) {
+      configs.push({
+        chainId: 84532,
+        rpcUrl: baseRpcUrl,
+        vaultAddress: baseVaultAddress,
+        name: "Base Sepolia",
+      });
+    } else {
+      configs.push({
+        chainId: 31337,
+        rpcUrl: baseRpcUrl,
+        vaultAddress: baseVaultAddress,
+        name: "Localhost Base",
+      });
+    }
   }
 
-  // Sepolia
-  if (process.env.SEPOLIA_RPC_URL && process.env.SEPOLIA_VAULT_ADDRESS) {
-    configs.push({
-      chainId: 11155111,
-      rpcUrl: process.env.SEPOLIA_RPC_URL,
-      vaultAddress: process.env.SEPOLIA_VAULT_ADDRESS,
-      name: "Sepolia",
-    });
+  // Sepolia (11155111)
+  const sepoliaRpcUrl = process.env.SEPOLIA_RPC_URL;
+  const sepoliaVaultAddress = process.env.SEPOLIA_VAULT_ADDRESS;
+  if (sepoliaRpcUrl && sepoliaVaultAddress) {
+    const isLocalhost = sepoliaRpcUrl.startsWith("http://localhost:") || sepoliaRpcUrl.startsWith("http://127.0.0.1:");
+    if (!isLocalhost) {
+      configs.push({
+        chainId: 11155111,
+        rpcUrl: sepoliaRpcUrl,
+        vaultAddress: sepoliaVaultAddress,
+        name: "Sepolia",
+      });
+    } else {
+      configs.push({
+        chainId: 31338,
+        rpcUrl: sepoliaRpcUrl,
+        vaultAddress: sepoliaVaultAddress,
+        name: "Localhost Sepolia",
+      });
+    }
   }
 
-  // Localhost Base
-  if (process.env.BASE_RPC_URL?.includes("localhost") && process.env.BASE_VAULT_ADDRESS) {
-    configs.push({
-      chainId: 31337,
-      rpcUrl: process.env.BASE_RPC_URL,
-      vaultAddress: process.env.BASE_VAULT_ADDRESS,
-      name: "Localhost Base",
-    });
-  }
-
-  // Localhost Sepolia
-  if (process.env.SEPOLIA_RPC_URL?.includes("localhost") && process.env.SEPOLIA_VAULT_ADDRESS) {
-    configs.push({
-      chainId: 31338,
-      rpcUrl: process.env.SEPOLIA_RPC_URL,
-      vaultAddress: process.env.SEPOLIA_VAULT_ADDRESS,
-      name: "Localhost Sepolia",
-    });
+  // Arbitrum Sepolia (421614)
+  const arbitrumRpcUrl = process.env.ARBITRUM_RPC_URL;
+  const arbitrumVaultAddress = process.env.ARBITRUM_VAULT_ADDRESS;
+  if (arbitrumRpcUrl && arbitrumVaultAddress) {
+    const isLocalhost = arbitrumRpcUrl.startsWith("http://localhost:") || arbitrumRpcUrl.startsWith("http://127.0.0.1:");
+    if (!isLocalhost) {
+      configs.push({
+        chainId: 421614,
+        rpcUrl: arbitrumRpcUrl,
+        vaultAddress: arbitrumVaultAddress,
+        name: "Arbitrum Sepolia",
+      });
+    } else {
+      configs.push({
+        chainId: 31339,
+        rpcUrl: arbitrumRpcUrl,
+        vaultAddress: arbitrumVaultAddress,
+        name: "Localhost Arbitrum",
+      });
+    }
   }
 
   return configs;
@@ -75,10 +107,14 @@ function getChainFromId(chainId: number) {
       return baseSepolia;
     case 11155111:
       return sepolia;
+    case 421614:
+      return arbitrumSepolia;
     case 31337:
       return localhostBase;
     case 31338:
       return localhostSepolia;
+    case 31339:
+      return localhostArbitrum;
     default:
       throw new Error(`Unknown chain ID: ${chainId}`);
   }
@@ -258,7 +294,7 @@ async function processEvent(
         amount: amount.toString(),
         txHash: log.transactionHash,
         blockNumber: BigInt(log.blockNumber.toString()),
-        blockTimestamp: BigInt(timestamp.toString()),
+        blockTimestamp: BigInt(timestamp!.toString()),
       },
     });
 
@@ -275,7 +311,7 @@ export async function startIndexer(): Promise<void> {
 
   if (configs.length === 0) {
     throw new Error(
-      "No chain configurations found. Please set BASE_RPC_URL/BASE_VAULT_ADDRESS and/or SEPOLIA_RPC_URL/SEPOLIA_VAULT_ADDRESS"
+      "No chain configurations found. Please set BASE_RPC_URL/BASE_VAULT_ADDRESS, SEPOLIA_RPC_URL/SEPOLIA_VAULT_ADDRESS, and/or ARBITRUM_RPC_URL/ARBITRUM_VAULT_ADDRESS"
     );
   }
 
