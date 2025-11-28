@@ -1,4 +1,5 @@
 use crate::balances::{self, BalanceSnapshot};
+use crate::blockchain::SharedBlockchainClient;
 use crate::matching::{match_a_against_makers, plan_for_chain};
 use crate::models::{Chain, Intent, IntentKind, TransferPlanEntry, USER_A};
 use crate::orderbook::{add_intent, AppState, SharedState};
@@ -9,6 +10,8 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+
+type ApiState = (SharedState, SharedBlockchainClient);
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use tokio::sync::MutexGuard;
@@ -58,14 +61,14 @@ pub struct TransferReceipt {
     pub tx_hash: String,
 }
 
-pub fn router(state: SharedState) -> Router {
+pub fn router(state: SharedState, blockchain: SharedBlockchainClient) -> Router {
     Router::new()
         .route("/deposit", post(deposit))
         .route("/order", post(create_order))
         .route("/match", post(run_matching))
         .route("/orderbook", get(list_orderbook))
         .route("/balances", get(list_balances))
-        .with_state(state)
+        .with_state((state, blockchain))
 }
 
 fn parse_chain(value: &str) -> Result<Chain, String> {
@@ -73,7 +76,7 @@ fn parse_chain(value: &str) -> Result<Chain, String> {
 }
 
 async fn deposit(
-    State(state): State<SharedState>,
+    State((state, _)): State<ApiState>,
     Json(payload): Json<DepositRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let chain = parse_chain(&payload.chain).map_err(|err| (StatusCode::BAD_REQUEST, err))?;
@@ -94,7 +97,7 @@ async fn deposit(
 }
 
 async fn create_order(
-    State(state): State<SharedState>,
+    State((state, blockchain)): State<ApiState>,
     Json(payload): Json<OrderRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let from_chain =
@@ -145,16 +148,22 @@ async fn create_order(
         ));
     }
 
-    let receipts = settlement_plan
-        .into_iter()
-        .map(|entry| TransferReceipt {
+    // Send real blockchain transactions from B, C, D to A on the to_chain (Base)
+    let mut receipts = Vec::new();
+    for entry in settlement_plan {
+        let tx_hash = blockchain
+            .send_erc20_transfer(&entry.from, &entry.to, entry.amount)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+        
+        receipts.push(TransferReceipt {
             chain: entry.chain,
             from: entry.from,
             to: entry.to,
             amount: entry.amount,
-            tx_hash: format!("0x{}", Uuid::new_v4().simple()),
-        })
-        .collect();
+            tx_hash,
+        });
+    }
 
     Ok((
         StatusCode::CREATED,
@@ -166,7 +175,7 @@ async fn create_order(
 }
 
 async fn run_matching(
-    State(state): State<SharedState>,
+    State((state, _)): State<ApiState>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let guard = state.lock().await;
     let solution = match_a_against_makers(&guard.orderbook).ok_or_else(|| {
@@ -178,12 +187,12 @@ async fn run_matching(
     Ok((StatusCode::OK, Json(MatchResponse { solution })))
 }
 
-async fn list_orderbook(State(state): State<SharedState>) -> impl IntoResponse {
+async fn list_orderbook(State((state, _)): State<ApiState>) -> impl IntoResponse {
     let guard = state.lock().await;
     Json(guard.orderbook.clone())
 }
 
-async fn list_balances(State(state): State<SharedState>) -> impl IntoResponse {
+async fn list_balances(State((state, _)): State<ApiState>) -> impl IntoResponse {
     let guard: MutexGuard<'_, AppState> = state.lock().await;
     let snapshot: Vec<BalanceSnapshot> = balances::snapshot(&guard.balances);
     Json(snapshot)
